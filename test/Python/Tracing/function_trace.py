@@ -38,4 +38,4 @@ mb.trace(exp.simple_mul)
 # CHECK:  %3 = numpy.narrow %2 : (tensor<*x!basicpy.UnknownType>) -> tensor<?x4xf32>
 # CHECK:  return %3 : tensor<?x4xf32>
 # CHECK: }
-print(str(mb.module))
+print(mb.module)

@@ -16,8 +16,7 @@ from torch_mlir.torchscript.e2e_test.configs import (
 )
 
 from npcomp.compiler.pytorch.backend import is_iree_enabled
-IREE_ENABLED = is_iree_enabled()
-if IREE_ENABLED:
+if IREE_ENABLED := is_iree_enabled():
     from npcomp.compiler.pytorch.backend.iree import IreeNpcompBackend
 from npcomp.compiler.pytorch.backend.refjit import RefjitNpcompBackend
 
@@ -76,7 +75,7 @@ def main():
         test for test in GLOBAL_TEST_REGISTRY
         if re.match(args.filter, test.unique_name)
     ]
-    if len(tests) == 0:
+    if not tests:
         print(
             f'ERROR: the provided filter {args.filter!r} does not match any tests'
         )

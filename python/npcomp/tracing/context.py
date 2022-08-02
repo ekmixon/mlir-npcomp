@@ -87,11 +87,7 @@ class TraceContext:
 
   @classmethod
   def optional_current(cls) -> Optional["TraceContext"]:
-    s = cls._get_context_stack()
-    if s:
-      return s[-1]
-    else:
-      return None
+    return s[-1] if (s := cls._get_context_stack()) else None
 
   @classmethod
   def current(cls) -> "TraceContext":

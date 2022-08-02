@@ -21,8 +21,10 @@ from torch_mlir.torchscript.annotations import extract_annotations
 class PrettyErrorReportForIrOperation(object):
     def __init__(self, module, module_name_for_ir_dump: str):
         sys.stderr = StringIO()
-        self.filename_for_ir_dump = os.path.join(tempfile.gettempdir(),
-                                module_name_for_ir_dump + '.mlir')
+        self.filename_for_ir_dump = os.path.join(
+            tempfile.gettempdir(), f'{module_name_for_ir_dump}.mlir'
+        )
+
         self.asm_for_error_report = module.get_asm(
             large_elements_limit=10, enable_debug_info=True)
     def __enter__(self):
@@ -83,8 +85,10 @@ Diagnostics:
             #   up /tmp)
             # - if we do have have colliding filenames, writes should at least
             #   avoid being racy.
-            filename = os.path.join(tempfile.gettempdir(),
-                                    scripted.original_name + '.mlir')
+            filename = os.path.join(
+                tempfile.gettempdir(), f'{scripted.original_name}.mlir'
+            )
+
             with open(filename, 'w') as f:
                 f.write(asm_for_error_report)
             raise Exception(f"""
@@ -102,8 +106,10 @@ $ npcomp-opt -{pipeline_str} {filename}
                 large_elements_limit=10, enable_debug_info=True)
             return self.backend.compile(mb.module)
         except Exception as e:
-            filename = os.path.join(tempfile.gettempdir(),
-                                    scripted.original_name + '.mlir')
+            filename = os.path.join(
+                tempfile.gettempdir(), f'{scripted.original_name}.mlir'
+            )
+
             with open(filename, 'w') as f:
                 f.write(asm_for_error_report)
             raise Exception(f"""

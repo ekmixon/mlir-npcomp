@@ -141,14 +141,16 @@ class SingleTestReport:
         self.context = context
         self.item_reports = None
         if result.compilation_error is None:
-            self.item_reports = []
-            for i, (item, golden_item) in enumerate(
-                    zip(result.trace, result.golden_trace)):
-                self.item_reports.append(
-                    TraceItemReport(
-                        item, golden_item,
-                        context.chain(
-                            f'trace item #{i} - call to "{item.symbol}"')))
+            self.item_reports = [
+                TraceItemReport(
+                    item,
+                    golden_item,
+                    context.chain(f'trace item #{i} - call to "{item.symbol}"'),
+                )
+                for i, (item, golden_item) in enumerate(
+                    zip(result.trace, result.golden_trace)
+                )
+            ]
 
     @property
     def failed(self):
@@ -161,7 +163,7 @@ class SingleTestReport:
         f = io.StringIO()
         p = lambda *x: print(*x, file=f)
         if self.result.compilation_error is not None:
-            return 'compilation error' + self.result.compilation_error
+            return f'compilation error{self.result.compilation_error}'
         for report in self.item_reports:
             if report.failed:
                 p(report.error_str())
@@ -197,22 +199,21 @@ def report_results(results: List[TestResult],
                 error_str = ''
                 if verbose:
                     error_str = '\n' + textwrap.indent(report.error_str(), '    ')
-                print(f'XFAIL - "{result.unique_name}"' + error_str)
+                print(f'XFAIL - "{result.unique_name}"{error_str}')
                 summary['XFAIL'] += 1
             else:
                 print(f'XPASS - "{result.unique_name}"')
                 summary['XPASS'] += 1
-        else:
-            if not report.failed:
-                print(f'PASS - "{result.unique_name}"')
-                summary['PASS'] += 1
-            else:
-                error_str = ''
-                if verbose:
-                    error_str = '\n' + textwrap.indent(report.error_str(), '    ')
-                print(f'FAIL - "{result.unique_name}"' + error_str)
-                summary['FAIL'] += 1
+        elif report.failed:
+            error_str = ''
+            if verbose:
+                error_str = '\n' + textwrap.indent(report.error_str(), '    ')
+            print(f'FAIL - "{result.unique_name}"{error_str}')
+            summary['FAIL'] += 1
 
+        else:
+            print(f'PASS - "{result.unique_name}"')
+            summary['PASS'] += 1
     # Print a summary for easy scanning.
     print('\nSummary:')
     KEY_MEANINGS = {

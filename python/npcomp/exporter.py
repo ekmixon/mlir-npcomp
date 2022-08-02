@@ -50,7 +50,7 @@ class ExportFunction:
   __slots__ = ["_sig"]
 
   def __init__(self, sig=None):
-    self._sig = sig if sig else Signature()
+    self._sig = sig or Signature()
 
   @property
   def sig(self):
@@ -93,7 +93,7 @@ class ExportPyFunction(ExportFunction):
     assert (hasattr(pyfunc, "__call__") and
             hasattr(pyfunc, "__name__")), "Not a python function"
     self._pyfunc = pyfunc
-    self.__name__ = name if name else pyfunc.__name__
+    self.__name__ = name or pyfunc.__name__
 
   @property
   def pyfunc(self):
@@ -136,16 +136,12 @@ class _ExpandoNode:
   def _get_full_name(self):
     if not self._parent:
       return ""  # Root is always empty name.
-    full_name = (self._parent_name + "." +
-                 self._local_name if self._parent_name else self._local_name)
-    return full_name
+    return ((f"{self._parent_name}." + self._local_name)
+            if self._parent_name else self._local_name)
 
   def _get_child_name(self, child_local_name):
     full_name = self._get_full_name()
-    if not full_name:
-      return child_local_name
-    else:
-      return full_name + "." + child_local_name
+    return f"{full_name}.{child_local_name}" if full_name else child_local_name
 
   def __repr__(self):
     return "Namespace(\"%s\")" % (self._get_full_name())
@@ -158,9 +154,7 @@ class _ExpandoNode:
     existing = self._children.get(key)
     if existing is not None:
       return existing
-    # Speculatively create a child expando.
-    child = _ExpandoNode(self, self._services, key)
-    return child
+    return _ExpandoNode(self, self._services, key)
 
   def __setitem__(self, key, value):
     if not inspect.isfunction(value):

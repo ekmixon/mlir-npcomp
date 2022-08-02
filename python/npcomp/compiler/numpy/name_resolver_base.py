@@ -32,14 +32,14 @@ class LocalNameReference(NameReference):
   def load(self, env: Environment) -> PartialEvalResult:
     if self._current_value is None:
       return PartialEvalResult.error_message(
-          "Attempt to access local '{}' before assignment".format(self.name))
+          f"Attempt to access local '{self.name}' before assignment")
     return PartialEvalResult.yields_ir_value(self._current_value)
 
   def store(self, env: Environment, value: _ir.Value):
     self._current_value = value
 
   def __repr__(self):
-    return "<LocalNameReference({})>".format(self.name)
+    return f"<LocalNameReference({self.name})>"
 
 
 class LocalNameResolver(NameResolver):
@@ -82,7 +82,7 @@ class ConstNameReference(NameReference):
     return env.partial_evaluate(self._py_value)
 
   def __repr__(self):
-    return "<ConstNameReference({}={})>".format(self.name, self._py_value)
+    return f"<ConstNameReference({self.name}={self._py_value})>"
 
 
 class ConstModuleNameResolver(NameResolver):

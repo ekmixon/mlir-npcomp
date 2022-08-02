@@ -146,10 +146,9 @@ class ValueType:
     return self
 
   def __repr__(self):
-    if not self._constraints:
-      return repr(self._type_class)
-    return "%r[%s]" % (self._type_class, ", ".join(
-        [repr(c) for c in self._constraints]))
+    return ("%r[%s]" % (self._type_class,
+                        ", ".join([repr(c) for c in self._constraints]))
+            if self._constraints else repr(self._type_class))
 
   @property
   def type_class(self):
@@ -216,7 +215,7 @@ class ValueTypeList:
     return self._list.__iter__()
 
   def __repr__(self):
-    return "(%s)" % (", ".join(repr(t) for t in self._list),)
+    return f'({", ".join((repr(t) for t in self._list))})'
 
 
 class Signature:
@@ -272,8 +271,8 @@ class Signature:
 
   def __repr__(self):
     args_repr = "(%s)" % (", ".join(
-        ((n + ": " + repr(t)) if n else repr(t))
-        for t, n in zip(self._args, self._arg_names)),)
+        f"{n}: {repr(t)}" if n else repr(t)
+        for t, n in zip(self._args, self._arg_names)), )
     return "%s -> %r" % (args_repr, self._result)
 
 
@@ -302,9 +301,7 @@ class ArrayParams:
 
   @property
   def rank(self):
-    if self.shape is Unspec:
-      return Unspec
-    return len(self.shape)
+    return Unspec if self.shape is Unspec else len(self.shape)
 
   @classmethod
   def from_constraints(cls, constraints):
@@ -407,11 +404,7 @@ class ArrayParams:
     """
     if self.dtype is Unspec:
       return False
-    if self.shape is Unspec:
-      return False
-    if any(d < 0 for d in self.shape):
-      return False
-    return True
+    return False if self.shape is Unspec else all(d >= 0 for d in self.shape)
 
   @property
   def mlir_tensor_type_asm(self):
@@ -456,7 +449,7 @@ class ArrayParams:
       shape_asm = "x".join((str(d) if d >= 0 else "?") for d in self.shape)
     if shape_asm:
       shape_asm += "x"
-    return "tensor<%s%s>" % (shape_asm, dtype_asm)
+    return f"tensor<{shape_asm}{dtype_asm}>"
 
   def new_ndarray(self):
     """Creates a new ndarray from these params.
@@ -503,7 +496,7 @@ class TypeConstraints(list):
     assert (all(isinstance(c, ArrayConstraint) for c in self))
 
   def __repr__(self):
-    return "TypeConstraints(%s)" % (", ".join([repr(c) for c in self]))
+    return f'TypeConstraints({", ".join([repr(c) for c in self])})'
 
   def all_of(self, clazz):
     """Finds all of the given class."""
@@ -579,7 +572,7 @@ class DType(ArrayConstraint):
     return True
 
   def __repr__(self):
-    return "DType(%s)" % (self._dtype.__name__,)
+    return f"DType({self._dtype.__name__})"
 
 
 class Rank(ArrayConstraint):
@@ -655,7 +648,7 @@ class Shape(ArrayConstraint):
     return True
 
   def __repr__(self):
-    return "Shape(%s)" % (", ".join(str(d) for d in self._dims))
+    return f'Shape({", ".join((str(d) for d in self._dims))})'
 
 
 class DimFlagEnum(_LiterateEnum):

@@ -34,8 +34,7 @@ class ModuleBuilder:
                emitter_registry=None):
     ic = self.ic = ImportContext(mlir_context)
     ic.module = _ir.Module.create(loc=ic.loc)
-    self.emitters = (emitter_registry
-                     if emitter_registry else EmitterRegistry.create_default())
+    self.emitters = emitter_registry or EmitterRegistry.create_default()
 
   @property
   def module(self):
@@ -67,7 +66,7 @@ class FunctionTracer(TraceContext):
   ]
 
   def __init__(self, module_builder: ModuleBuilder, epf: ExportPyFunction):
-    super().__init__(desc="[trace of %s]" % epf.__name__)
+    super().__init__(desc=f"[trace of {epf.__name__}]")
     self.module_builder = module_builder
     self.epf = epf
     self._traced_arrays = {}  # Mapping of TracedArray to current consumer value
@@ -142,8 +141,7 @@ class FunctionTracer(TraceContext):
     ic = self._ic
     if not isinstance(external_array, np.ndarray):
       raise TracingError("Expected ndarray but got: %r" % (external_array,))
-    found_it = self._external_arrays.get(id(external_array))
-    if found_it:
+    if found_it := self._external_arrays.get(id(external_array)):
       return found_it[1]
     # Import it.
     dense_attr = _ir.DenseElementsAttr.get(external_array, context=ic.context)
@@ -155,10 +153,9 @@ class FunctionTracer(TraceContext):
     return const_value
 
   def _validate(self):
-    if not all(
-        arg.type_class == TypeClass.NdArray for arg in self.epf.sig.args):
+    if any(arg.type_class != TypeClass.NdArray for arg in self.epf.sig.args):
       raise NotImplementedError("Non NdArray args: %r" % (self.epf.sig.args,))
-    if not self.epf.sig.result.type_class == TypeClass.NdArray:
+    if self.epf.sig.result.type_class != TypeClass.NdArray:
       raise NotImplementedError("Non NdArray result: %r" %
                                 (self.epf.sig.result,))
 
@@ -233,7 +230,7 @@ class FunctionTracer(TraceContext):
 
   def _emit_slice_value(self, slice_element):
     ic = self._ic
-    if slice_element == None:
+    if slice_element is None:
       return basicpy_ops.SingletonOp(ic.none_type, loc=ic.loc, ip=ic.ip).result
     elif slice_element == Ellipsis:
       return basicpy_ops.SingletonOp(ic.ellipsis_type, loc=ic.loc,

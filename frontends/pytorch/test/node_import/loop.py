@@ -46,7 +46,7 @@ def prim_Loop_forlike(n: int):
 def prim_Loop_whilelike(n: int):
     f = 3.2
     while f < n:
-        f = f * f
+        f *= f
     return f
 
 # CHECK-LABEL:   func @__torch__.prim_Loop_derefine(
@@ -64,7 +64,7 @@ def prim_Loop_whilelike(n: int):
 @torch.jit.script
 def prim_Loop_derefine(n: int):
     x: typing.Optional[int] = None
-    for i in range(n):
+    for _ in range(n):
         x = n
     return x
 

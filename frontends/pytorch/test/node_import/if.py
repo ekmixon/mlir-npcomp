@@ -27,10 +27,7 @@ def prim_If(b: bool, i: int):
     # CHECK:             torch.prim.If.yield %[[MUL]] : !torch.int
     # CHECK:           }
     # CHECK:           return %[[RES:.*]] : !torch.int
-    if b:
-        return i + i
-    else:
-        return i * i
+    return i + i if b else i**2
 
 # CHECK-LABEL:   func @__torch__.prim_If_derefine(
 # CHECK-SAME:                           %[[B:.*]]: !torch.bool,
@@ -47,9 +44,7 @@ def prim_If(b: bool, i: int):
 @mb.import_function
 @torch.jit.script
 def prim_If_derefine(b: bool, i: int):
-    if b:
-        return None
-    return i
+    return None if b else i
 
 mb.module.operation.print()
 print()

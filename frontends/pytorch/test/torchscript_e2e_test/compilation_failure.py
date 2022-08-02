@@ -19,10 +19,7 @@ class MmModule(torch.nn.Module):
     def forward(self, t):
         # Static type error that will fail TorchScript compilation -- function
         # that returns tensor along one path and int along another.
-        if t.item() > 0:
-            return torch.tensor([])
-        else:
-            return 3
+        return torch.tensor([]) if t.item() > 0 else 3
 
 
 # CHECK: FAIL - "MmModule_basic"

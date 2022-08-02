@@ -81,12 +81,13 @@ def main(args):
     sys.exit(1)
 
   # Report.
-  print("COMMON LLVM REVISION: {} (at {})".format(join_results.parent_revision,
-                                                  join_results.parent_date))
+  print(
+      f"COMMON LLVM REVISION: {join_results.parent_revision} (at {join_results.parent_date})"
+  )
   for child_key, child_revision_map in join_results.child_revision_maps.items():
-    print("  - {}: {} (at {})".format(child_key,
-                                      child_revision_map.child_revision,
-                                      child_revision_map.child_date))
+    print(
+        f"  - {child_key}: {child_revision_map.child_revision} (at {child_revision_map.child_date})"
+    )
 
 
 def join_child_revision_maps(revision_maps):
@@ -95,8 +96,8 @@ def join_child_revision_maps(revision_maps):
   Returns:
     Return ParentChildJoin or None if no revisions found.
   """
-  parent_revision_dates = dict()  # Dates of each parent revision.
-  parent_revisions = dict()  # Of parent_revision -> count of agreements.
+  parent_revision_dates = {}
+  parent_revisions = {}
   for child_key, child_maps in revision_maps.items():
     for child_map in child_maps:
       parent_revision_dates[child_map.parent_revision] = child_map.parent_date
@@ -105,7 +106,7 @@ def join_child_revision_maps(revision_maps):
           (0 if count is None else count) + 1)
 
   def build_child_map(parent_revision):
-    child_map = dict()
+    child_map = {}
     for child_key, child_revision_map in revision_maps.items():
       for single_child_revision_map in child_revision_map:
         if single_child_revision_map.parent_revision == parent_revision:
@@ -227,9 +228,10 @@ def subprocess_call(args, cwd, capture_output=False, **kwargs):
     else:
       return subprocess.check_call(args, cwd=cwd, **kwargs)
   except subprocess.CalledProcessError:
-    print("ERROR executing subprocess (from {}):\n  {}".format(
-        cwd, " ".join(args)),
-          file=sys.stderr)
+    print(
+        f'ERROR executing subprocess (from {cwd}):\n  {" ".join(args)}',
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 

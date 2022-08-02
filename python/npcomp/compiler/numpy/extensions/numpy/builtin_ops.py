@@ -30,9 +30,7 @@ __all__ = [
 def _default_ufunc_predicate(ufunc: np.ufunc) -> bool:
   """Filters ufuncs based on ability to evaluate them."""
   # Support up to 2 input, 1 output functions.
-  if ufunc.nin > 2 or ufunc.nout != 1:
-    return False
-  return True
+  return ufunc.nin <= 2 and ufunc.nout == 1
 
 
 def get_ufuncs_from_module(

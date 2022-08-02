@@ -100,7 +100,7 @@ class JitOperator:
         participate in their dispatch overload resolution, which is of primary
         concern for them)
         """
-        overload = "" if not self.overload_name else f".{self.overload_name}"
+        overload = f".{self.overload_name}" if self.overload_name else ""
         if self.is_vararg:
             arg_str = "..."
         else:
@@ -129,9 +129,7 @@ class JitOperator:
         them in a single point of truth.
         """
         def uppercase_first_letter(s):
-            if not s:
-                return s
-            return s[0].upper() + s[1:]
+            return s[0].upper() + s[1:] if s else s
 
         op_name_atoms = [self.namespace, self.unqualified_name]
         if self.overload_name:
@@ -141,7 +139,7 @@ class JitOperator:
         op_class_name_atoms = []
         for op_name_atom in op_name_atoms:
             for s in op_name_atom.split("_"):
-                op_class_name_atoms.append(s if s else "_")
+                op_class_name_atoms.append(s or "_")
         td_def_name = "Torch_" + "".join(
             uppercase_first_letter(s) for s in op_class_name_atoms) + "Op"
         return op_name, td_def_name
@@ -292,7 +290,7 @@ def raw_emit_op(operator: JitOperator, f: TextIO, *, traits: List[str],
     with emitter.indent():
         summary = f"Generated op for `{operator.unique_key}`"
         p(f"let summary = {emitter.quote(summary)};")
-        p(f"let arguments = (ins")
+        p("let arguments = (ins")
         with emitter.indent():
             if operator.is_vararg:
                 p("Variadic<AnyTorchType>:$operands")
@@ -302,7 +300,7 @@ def raw_emit_op(operator: JitOperator, f: TextIO, *, traits: List[str],
                     for arg in operator.arguments
                 ]))
         p(");")
-        p(f"let results = (outs")
+        p("let results = (outs")
         with emitter.indent():
             if operator.is_varret:
                 p("Variadic<AnyTorchType>:$results")
@@ -413,9 +411,12 @@ def emit_aten_ops(torch_ir_dir: str, registry: Registry):
             operator = registry[key]
             emit_op(operator, f, **kwargs)
             ns, unqual, overload = operator.triple
-            emit_op(registry.get_by_triple((ns, unqual + "_", overload)),
-                    f,
-                    traits=["IsTrailingUnderscoreInplaceVariant"])
+            emit_op(
+                registry.get_by_triple((ns, f"{unqual}_", overload)),
+                f,
+                traits=["IsTrailingUnderscoreInplaceVariant"],
+            )
+
 
         # Elementwise tensor compute ops
         for key in [

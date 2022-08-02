@@ -29,7 +29,7 @@ def create_import_dump_decorator(*,
     return f
 
   def decorator(*args, expect_error=None):
-    if len(args) == 0:
+    if not args:
       # Higher order decorator.
       return functools.partial(decorator, expect_error=expect_error)
 
@@ -39,7 +39,6 @@ def create_import_dump_decorator(*,
     except EmittedError as e:
       if expect_error and e.message == expect_error:
         print("// EXPECTED_ERROR:", repr(e.message))
-        pass
       elif expect_error:
         print("// MISMATCHED_ERROR:", repr(e.message))
         raise AssertionError("Expected error '{}' but got '{}'".format(

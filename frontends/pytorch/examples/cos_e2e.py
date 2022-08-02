@@ -24,7 +24,7 @@ with mb.capture_function("cos", [input]) as f:
 backend = iree.IreeNpcompBackend()
 jit_module = backend.load(backend.compile(frontend_lowering.lower_module(mb.module)))
 
-logging.debug(f"Executing jit_module.cos")
+logging.debug("Executing jit_module.cos")
 test_utils.compare_outputs(torch.cos, jit_module.cos, input)
 
 # This fails because ModuleBuilder represents torch.cos with a constant:

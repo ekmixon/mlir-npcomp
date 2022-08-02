@@ -24,9 +24,9 @@ def f(b: bool, i: int):
     if b:
         return i + i
     elif i:
-        return i + i * i
+        return i + i**2
     else:
-        return i * i
+        return i**2
 
 assert isinstance(f, torch.jit.ScriptFunction)
 mb.module.operation.print()

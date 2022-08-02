@@ -56,11 +56,7 @@ class JitModuleInvoker:
 
     def invoke(*args):
       results = self._jit_module.invoke(function_name, args)
-      if len(results) == 1:
-        # De-tuple.
-        return results[0]
-      else:
-        return tuple(results)
+      return results[0] if len(results) == 1 else tuple(results)
 
     invoke.__isnpcomp__ = True
     return invoke

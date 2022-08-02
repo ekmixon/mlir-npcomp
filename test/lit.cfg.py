@@ -50,8 +50,11 @@ config.test_source_root = os.path.dirname(__file__)
 config.test_exec_root = os.path.join(config.npcomp_obj_root, 'test')
 config.npcomp_bin_dir = os.path.join(config.npcomp_obj_root, 'bin')
 config.npcomp_runtime_shlib = os.path.join(
-    config.npcomp_obj_root, 'lib',
-    'libNPCOMPCompilerRuntimeShlib' + config.llvm_shlib_ext)
+    config.npcomp_obj_root,
+    'lib',
+    f'libNPCOMPCompilerRuntimeShlib{config.llvm_shlib_ext}',
+)
+
 
 # Tweak the PATH and PYTHONPATH to include the tools dir.
 npcomp_python_dir = "python" if config.npcomp_built_standalone else "tools/npcomp/python"

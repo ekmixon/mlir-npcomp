@@ -22,11 +22,10 @@ class Net(nn.Module):
       super(Net, self).__init__()
       self.conv1 = nn.Conv2d(Cin, Cout, (3,3))
     def forward(self, x):
-      x0 = self.conv1(x)
-      x1 = self.conv1(x)
-      z = torch.cat([x0, x1])
-      output = F.log_softmax(z, dim=1)
-      return output
+        x0 = self.conv1(x)
+        x1 = self.conv1(x)
+        z = torch.cat([x0, x1])
+        return F.log_softmax(z, dim=1)
 
 model = Net(Cin, Cout)
 inputs = torch.ones((N,Cin,h,w))

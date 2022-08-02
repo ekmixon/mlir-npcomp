@@ -9,8 +9,6 @@
 # (this includes down into lower parts of the stack, where a side table
 # might be used to keep more elaborate sets of testing configurations).
 
-XFAIL_SETS = {}
-
 # Lists of tests that fail to even reach the backends.
 # These represent further work needed in npcomp to lower them properly
 # to the backend contract.
@@ -19,15 +17,19 @@ _common_npcomp_lowering_xfails = {
     'QuantizedMLP_basic',
 }
 
-XFAIL_SETS['refbackend'] = _common_npcomp_lowering_xfails
-
-XFAIL_SETS['iree'] = _common_npcomp_lowering_xfails | {
-    # https://github.com/google/iree/pull/6407
-    'MmDagModule_basic',
-    'Mlp1LayerModule_basic',
-    'Mlp2LayerModule_basic',
-    'Conv2dNoPaddingModule_basic',
-    'AdaptiveAvgPool2dModule_basic',
-    # https://github.com/google/iree/issues/6416
-    'Conv2dWithPaddingModule_basic',
+XFAIL_SETS = {
+    'refbackend': _common_npcomp_lowering_xfails,
+    'iree': (
+        _common_npcomp_lowering_xfails
+        | {
+            # https://github.com/google/iree/pull/6407
+            'MmDagModule_basic',
+            'Mlp1LayerModule_basic',
+            'Mlp2LayerModule_basic',
+            'Conv2dNoPaddingModule_basic',
+            'AdaptiveAvgPool2dModule_basic',
+            # https://github.com/google/iree/issues/6416
+            'Conv2dWithPaddingModule_basic',
+        }
+    ),
 }

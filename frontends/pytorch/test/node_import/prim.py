@@ -59,9 +59,7 @@ def prim_RaiseException():
 @mb.import_function
 @torch.jit.script
 def prim_unchecked_cast(i: typing.Optional[int]):
-    if i is None:
-        return 3
-    return i
+    return 3 if i is None else i
 
 # CHECK-LABEL:   func @__torch__.prim_TupleUnpack(
 # CHECK-SAME:                     %[[ARG:.*]]: !torch.tuple<!torch.int, !torch.int>) -> !torch.int {

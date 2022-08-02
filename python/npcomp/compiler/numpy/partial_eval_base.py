@@ -27,8 +27,7 @@ class ResolveAttrLiveValueRef(LiveValueRef):
   __slots__ = []
 
   def resolve_getattr(self, env: "Environment", attr_name) -> PartialEvalResult:
-    logging.debug("RESOLVE_GETATTR '{}' on {}".format(attr_name,
-                                                      self.live_value))
+    logging.debug(f"RESOLVE_GETATTR '{attr_name}' on {self.live_value}")
     try:
       attr_py_value = getattr(self.live_value, attr_name)
     except:
@@ -91,7 +90,7 @@ class MappedPartialEvalHook(PartialEvalHook):
     self._value_map = PyValueMap()
 
   def __repr__(self):
-    return "MappedPartialEvalHook({})".format(self._value_map)
+    return f"MappedPartialEvalHook({self._value_map})"
 
   def partial_evaluate(self, py_value) -> PartialEvalResult:
     """Performs partial evaluation on a python value."""
@@ -103,8 +102,9 @@ class MappedPartialEvalHook(PartialEvalHook):
     # Attempt to call.
     try:
       result = action(py_value).as_partial_eval_result()
-      assert isinstance(result, PartialEvalResult), (
-          "Expected PartialEvalResult but got {}".format(result))
+      assert isinstance(
+          result,
+          PartialEvalResult), f"Expected PartialEvalResult but got {result}"
       logging.debug("PARTIAL EVAL RESOLVE {}: {}", py_value, result)
       return result
     except:

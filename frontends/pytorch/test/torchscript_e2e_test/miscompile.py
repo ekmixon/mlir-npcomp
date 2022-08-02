@@ -20,9 +20,7 @@ class MmModule(torch.nn.Module):
         # Use torch.jit.is_scripting() to fake a miscompile.
         # The non-scripted code will take one path, and the scripted code
         # will take another path.
-        if torch.jit.is_scripting():
-            return torch.mm(rhs, lhs)
-        return torch.mm(lhs, rhs)
+        return torch.mm(rhs, lhs) if torch.jit.is_scripting() else torch.mm(lhs, rhs)
 
 
 # TODO: Refine error messages.

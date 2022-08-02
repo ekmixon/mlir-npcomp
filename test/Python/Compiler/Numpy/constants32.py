@@ -12,14 +12,10 @@ import_global = test_config.create_import_dump_decorator(
 # CHECK-LABEL: func @integer_constants
 @import_global
 def integer_constants():
-  # CHECK: %[[A:.*]] = constant 100 : i32
-  a = 100
-  return a
+  return 100
 
 
 # CHECK-LABEL: func @float_constants
 @import_global
 def float_constants():
-  # CHECK: %[[A:.*]] = constant 2.200000e+00 : f32
-  a = 2.2
-  return a
+  return 2.2

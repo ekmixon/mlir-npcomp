@@ -39,11 +39,7 @@ class IreeModuleInvoker:
       results = self._iree_module[function_name](*args)
       if isinstance(results, np.ndarray):
         return results
-      if len(results) == 1:
-        # De-tuple.
-        return results[0]
-      else:
-        return tuple(results)
+      return results[0] if len(results) == 1 else tuple(results)
 
     invoke.__isnpcomp__ = True
     return invoke

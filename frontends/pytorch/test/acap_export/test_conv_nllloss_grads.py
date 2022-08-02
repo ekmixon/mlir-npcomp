@@ -23,9 +23,8 @@ class Net(nn.Module):
       super(Net, self).__init__()
       self.conv1 = nn.Conv2d(Cin, Cout, (3,3))
     def forward(self, x):
-      x = self.conv1(x)
-      output = F.log_softmax(x, dim=1)
-      return output
+        x = self.conv1(x)
+        return F.log_softmax(x, dim=1)
 
 model = Net(Cin, Cout)
 

@@ -162,8 +162,8 @@ class GenericCallUfuncEmitter(FuncEmitter):
     assert trace_invocation.method == "__call__"
     if trace_invocation.kwargs:
       raise ValueError(
-          "Unexpected keyword args for ufunc %s: %s" %
-          (self._ufunc_name, ", ".join(trace_invocation.kwargs.keys())))
+          f'Unexpected keyword args for ufunc {self._ufunc_name}: {", ".join(trace_invocation.kwargs.keys())}'
+      )
     # Without above special cases, any positional args map to emission
     # inputs.
     return TraceValueMap([
@@ -209,8 +209,8 @@ class GenericArrayFuncEmitter(FuncEmitter):
                                 ))
     if trace_invocation.kwargs:
       raise ValueError(
-          "Unexpected keyword args for %s: %s" %
-          (self._op_name, ", ".join(trace_invocation.kwargs.keys())))
+          f'Unexpected keyword args for {self._op_name}: {", ".join(trace_invocation.kwargs.keys())}'
+      )
     # Without above special cases, any positional args map to emission
     # inputs.
     return TraceValueMap([
@@ -219,10 +219,7 @@ class GenericArrayFuncEmitter(FuncEmitter):
                          extra=None)
 
   def map_results(self, py_results, extra):
-    if self._nresults == 1:
-      return py_results[0]
-    else:
-      return tuple(py_results)
+    return py_results[0] if self._nresults == 1 else tuple(py_results)
 
   def emit(self, request: EmissionRequest):
     ic = request.ic
@@ -275,7 +272,7 @@ class EmitterRegistry:
       ufunc = getattr(np, member)
       if isinstance(ufunc, np.ufunc):
         self.register_ufunc(ufunc, "__call__",
-                            GenericCallUfuncEmitter("numpy." + member))
+                            GenericCallUfuncEmitter(f"numpy.{member}"))
     # Register generic 1-result array funcs.
     GENERIC_FUNCS = (
         (np.inner, "numpy.inner"),

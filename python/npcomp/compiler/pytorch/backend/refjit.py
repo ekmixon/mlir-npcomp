@@ -72,9 +72,8 @@ class RefjitNpcompBackend(NpcompBackend):
           "RefBackend input IR (this is what the RefBackend compiler sees):\n{}",
           imported_module)
 
-    jit_module = self._refjit.JITModule.from_compiled_module(
+    return self._refjit.JITModule.from_compiled_module(
         imported_module, refjit_backend.get_runtime_libs())
-    return jit_module
 
   def load(self, jit_module) -> TorchJitModuleInvoker:
     """Loads a compiled artifact into the runtime."""

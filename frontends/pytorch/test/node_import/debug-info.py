@@ -21,9 +21,7 @@ def add3(t0, t1, t2):
   # attribute print. See if this can be improved.
   # CHECK: loc({{.*}}debug-info.py":[[# @LINE + 1]]
   intermediate = t0 + t1
-  # CHECK: loc({{.*}}debug-info.py":[[# @LINE + 1]]
-  final = intermediate + t2
-  return final
+  return intermediate + t2
 
 # Verify again with debug info present. Just checking that it makes it in there.
 mb.module.operation.print(enable_debug_info=True)

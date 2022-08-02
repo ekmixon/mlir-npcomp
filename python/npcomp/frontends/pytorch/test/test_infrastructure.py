@@ -8,20 +8,20 @@ import copy
 
 
 def compare(a, b, test):
-  print("Computing:" + test)
+  print(f"Computing:{test}")
   err = (a.to('cpu') - b.to('cpu')).abs().max()
   if (err <= 1e-5):
-    print("PASS! " + test + " check")
+    print(f"PASS! {test} check")
   else:
-    print("FAILED " + test + " check")
+    print(f"FAILED {test} check")
 
 
 def compare_eq(a, b, test):
-  print("Computing:" + test)
+  print(f"Computing:{test}")
   if (a == b):
-    print("PASS! " + test + " check")
+    print(f"PASS! {test} check")
   else:
-    print("FAILED " + test + " check")
+    print(f"FAILED {test} check")
 
 
 def check_fwd(model, tensor):

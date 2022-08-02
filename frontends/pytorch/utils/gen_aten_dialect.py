@@ -108,7 +108,7 @@ _XPARSER = lark.Lark(_GRAMMAR,
                      propagate_positions=True,
                      keep_all_tokens=True)
 
-_TD_BLACKLIST = set([
+_TD_BLACKLIST = {
     'clone',
     'to',
     'copy_',
@@ -116,28 +116,20 @@ _TD_BLACKLIST = set([
     'copy_from',
     '_copy_from',
     '_unsafe_view',
-])
+}
 
-_TD_NO_OPSTATS_LIST = set([
-    '_log_softmax',
-    '_log_softmax_backward_data',
-])
+_TD_NO_OPSTATS_LIST = {'_log_softmax', '_log_softmax_backward_data'}
 
-_FN_BLACKLIST = set([
+_FN_BLACKLIST = {
     'numel',
     'ones',
     'ones_like',
     'result_type',
-    #    'zero_',
     'zeros',
     'zeros_like',
-])
+}
 
-_FN_NO_DEBUG_ENTRY_LIST = set([
-    'empty',
-    'fill_',
-    'zero_',
-])
+_FN_NO_DEBUG_ENTRY_LIST = {'empty', 'fill_', 'zero_'}
 
 _FN_BLACKLIST_REGEX = [
     # ATEN functions
@@ -305,8 +297,8 @@ class Context(object):
       self.functions_data = ff.read()
 
   def get_function(self, name):
-    if self.functions_data.find(' {}('.format(name)) >= 0:
-      return 'at::{}'.format(name)
+    if self.functions_data.find(f' {name}(') >= 0:
+      return f'at::{name}'
 
 
 class StringEmit(object):
@@ -340,7 +332,7 @@ class TensorFetcher(object):
 
   def __init__(self, var_name):
     self.var_name = var_name
-    self.tvar_name = '{}_tensors'.format(self.var_name)
+    self.tvar_name = f'{self.var_name}_tensors'
     self.tensors = []
     self.writeable = []
 
@@ -348,25 +340,22 @@ class TensorFetcher(object):
     if writeable:
       self.writeable.append(len(self.tensors))
     self.tensors.append(name)
-    return '{}[{}]'.format(self.var_name, len(self.tensors) - 1)
+    return f'{self.var_name}[{len(self.tensors) - 1}]'
 
   def generate_fetches(self):
-    code = ''
-    code += '  std::vector<at::Tensor> {} = {{{}}};\n'.format(
+    code = '' + '  std::vector<at::Tensor> {} = {{{}}};\n'.format(
         self.tvar_name, ', '.join(self.tensors))
-    code += ('  auto {} = bridge::MLIRCreateTensorList({});\n').format(
-        self.var_name, self.tvar_name)
+    code += f'  auto {self.var_name} = bridge::MLIRCreateTensorList({self.tvar_name});\n'
     return code
 
   def generate_updates(self):
     assert (0)
     code = ''
     if self.writeable:
-      ivar_name = '{}_update_indices'.format(self.var_name)
+      ivar_name = f'{self.var_name}_update_indices'
       code += '  std::vector<size_t> {} = {{{}}};\n'.format(
           ivar_name, ', '.join(str(x) for x in self.writeable))
-      code += '  bridge::XlaUpdateTensors({}, {}, {});\n'.format(
-          self.tvar_name, self.var_name, ivar_name)
+      code += f'  bridge::XlaUpdateTensors({self.tvar_name}, {self.var_name}, {ivar_name});\n'
     return code
 
 
@@ -377,10 +366,9 @@ def list_get(l, n):
 def is_blacklisted_fn(fname, mapsig):
   if fname in _FN_BLACKLIST or mapsig in _FN_BLACKLIST:
     return True
-  for frx in _FN_BLACKLIST_REGEX:
-    if re.match(frx, fname) or re.match(frx, mapsig):
-      return True
-  return False
+  return any(
+      re.match(frx, fname) or re.match(frx, mapsig)
+      for frx in _FN_BLACKLIST_REGEX)
 
 
 def get_outfn_options(fname, mapsig):
@@ -401,9 +389,8 @@ def get_remapfn_options(fname, mapsig):
 
 
 def is_write_param(fnopts, pname, defval):
-  if fnopts and fnopts.wparams:
-    if pname in fnopts.wparams:
-      return True
+  if fnopts and fnopts.wparams and pname in fnopts.wparams:
+    return True
   return defval
 
 
@@ -526,7 +513,7 @@ def type_core(t):
         return c.value
       assert isinstance(c, lark.tree.Tree) and c.data == 'template'
       return c.children[0].value
-  raise RuntimeError('Not a type tree: {}'.format(t))
+  raise RuntimeError(f'Not a type tree: {t}')
 
 
 def type_is_const(t):
@@ -578,7 +565,7 @@ def get_function_signature(t, orig_sig, namefn):
   emit_string(typed_child(t, 0, 'type'), emit, lambda t: 0)
   fnname = typed_child(t, 1, 'fnname').children[0]
   xfname = namefn(fnname.value)
-  emit.append(' {}('.format(xfname))
+  emit.append(f' {xfname}(')
   # Emit parameter list w/out parameter names.
   emit_string(typed_child(t, 3, 'params'), emit, lambda t: 0)
   emit.append(')')
@@ -597,14 +584,13 @@ def get_parameters(t):
 
 def get_rparameters(t):
   assert isinstance(t, lark.tree.Tree)
-  params = []
   print(len(t.children))
   # c = t.children[3]
   # assert isinstance(c, lark.tree.Tree)
   # assert c.data == 'rparams'
 
   # extract_list(c, params)
-  return params
+  return []
 
 
 def param_name(t):
@@ -644,8 +630,7 @@ def get_return_value(rtype, rname, param, var, ref_param, fnopts):
     # If instead the return type is a value Tensor, we create a new one by
     # wrapping the proper local variable which has been created by calling
     # into the CPU tensor implementation.
-    return 'bridge::CreateMLIRTensor({}, bridge::GetMLIRDevice({}))'.format(
-        rname, get_optional(fnopts, 'device_param', param_name(ref_param)))
+    return f"bridge::CreateMLIRTensor({rname}, bridge::GetMLIRDevice({get_optional(fnopts, 'device_param', param_name(ref_param))}))"
 
 
 def get_reference_param(params, fnopts=None):
@@ -659,7 +644,7 @@ def get_reference_param(params, fnopts=None):
     pname = param_name(p)
     if get_optional(fnopts, 'ref_param') == pname:
       return p
-    if not other and (cptype == 'TensorOptions' or cptype == 'TensorList'):
+    if not other and cptype in ['TensorOptions', 'TensorList']:
       other = p
     if cptype != 'Tensor':
       continue
@@ -672,14 +657,14 @@ def get_reference_param(params, fnopts=None):
 def get_tuple_return(rtype, rtype_str, rname, params, param_vars, ref_param,
                      fnopts):
   types = tuple_type_list(rtype)
-  retstr = '{}('.format(rtype_str)
+  retstr = f'{rtype_str}('
   for i, ttype in enumerate(types):
     if i > 0:
       retstr += ', '
-    tuple_var = 'std::get<{}>({})'.format(i, rname)
+    tuple_var = f'std::get<{i}>({rname})'
     retstr += get_return_value(ttype, tuple_var, list_get(params, i),
                                list_get(param_vars, i), ref_param, fnopts)
-  return retstr + ')'
+  return f'{retstr})'
 
 
 def get_return_type_str(t, orig_sig):
@@ -689,14 +674,14 @@ def get_return_type_str(t, orig_sig):
   assert fname.data == 'fnname'
   token = fname.children[0]
   assert isinstance(token, lark.lexer.Token)
-  return orig_sig[0:token.column - 2]
+  return orig_sig[:token.column - 2]
 
 
 def generate_entry_debug_code(t, fname, params, fname_ns='aten'):
   code = ''
   if fname in _FN_NO_DEBUG_ENTRY_LIST:
     return code
-  code += '  std::cout << "{}::{}" << std::endl;\n'.format(fname_ns, fname)
+  code += f'  std::cout << "{fname_ns}::{fname}" << std::endl;\n'
   # Emits debug code for a given intercepted ATEN type function. For now we use
   # a counter which will show up in the metrics reports.
   # VLOG info. Use the following to see debug output:
@@ -713,8 +698,7 @@ def generate_entry_debug_code(t, fname, params, fname_ns='aten'):
 
 
 def generate_exit_debug_code(t, fname, rname, params, param_vars):
-  code = ''
-  return code
+  return ''
 
 
 def generate_return_stmt(t, rtype_str, fname, rname, params, param_vars,
@@ -736,7 +720,7 @@ def generate_return_stmt(t, rtype_str, fname, rname, params, param_vars,
     return ''
   else:
     retstr = rname
-  return '  return {};\n'.format(retstr)
+  return f'  return {retstr};\n'
 
 
 def generate_result_assignment(t, rname):
@@ -745,26 +729,24 @@ def generate_result_assignment(t, rname):
   ctype = type_core(rtype)
   if ctype == 'void' and not type_is_refptr(rtype, '*'):
     return ''
-  return 'auto&& {} = '.format(rname)
+  return f'auto&& {rname} = '
 
 
 def get_handling_function(ctx, fname, the_ref_param, param_vars):
-  function = _torch_mlir_FUNCTIONS.get(fname, None) or ctx.get_function(fname)
-  if function:
-    code = '{}({})'.format(function, ', '.join(param_vars))
-  else:
-    other_params = list(param_vars)
-    other_params.remove(the_ref_param)
-    code = '{}.{}({})'.format(the_ref_param, fname, ', '.join(other_params))
-  return code
+  if function := _torch_mlir_FUNCTIONS.get(fname,
+                                           None) or ctx.get_function(fname):
+    return f"{function}({', '.join(param_vars)})"
+  other_params = list(param_vars)
+  other_params.remove(the_ref_param)
+  return f"{the_ref_param}.{fname}({', '.join(other_params)})"
 
 
 def rewrite_tensor_options(fname, pname):
   rw = _CTOR_FUNCTIONS.get(fname, None)
   if rw is None:
     return '', pname
-  xname = 'o_{}'.format(pname)
-  code = '  at::TensorOptions {} = {}{};\n'.format(xname, pname, rw)
+  xname = f'o_{pname}'
+  code = f'  at::TensorOptions {xname} = {pname}{rw};\n'
   return code, xname
 
 
@@ -777,27 +759,24 @@ def get_param_names(params):
 
 
 def expand_fn_template(tmpl, param_vars):
-  mdict = {}
-  for i, pname in enumerate(param_vars):
-    mdict[str(i)] = pname
+  mdict = {str(i): pname for i, pname in enumerate(param_vars)}
   return tmpl.substitute(mdict)
 
 
 def create_call(fname, param_vars):
-  return '{}({})'.format(fname, ', '.join(param_vars))
+  return f"{fname}({', '.join(param_vars)})"
 
 
 def generate_shape_checks(param_vars, shape_check_indices, fname):
-  code = ''
   #for i, j in shape_check_indices:
   #  code += ('  XLA_CHECK({}.sizes() == {}.sizes()) << "Operand shapes must be '
   #           'identical for {}, mismatch for arguments {} and {}";\n').format(
   #               param_vars[i], param_vars[j], fname, i + 1, j + 1)
-  return code
+  return ''
 
 
 def generate_aten_remap(ctx, fname, sig, params, fnopts):
-  code = '{} {{\n'.format(sig)
+  code = f'{sig} {{\n'
 
   param_vars = get_param_names(params)
   if fnopts.outfn_template is not None:
@@ -808,14 +787,13 @@ def generate_aten_remap(ctx, fname, sig, params, fnopts):
 
   if fnopts.shape_check_indices is not None:
     code += generate_shape_checks(param_vars, fnopts.shape_check_indices, fname)
-  code += '  return {};\n'.format(fcall)
+  code += f'  return {fcall};\n'
   code += '}'
   return code
 
 
 def generate_outfn_result_copy(dest, src):
-  return '  {}.unsafeGetTensorImpl()->shallow_copy_from({}.getIntrusivePtr());\n'.format(
-      dest, src)
+  return f'  {dest}.unsafeGetTensorImpl()->shallow_copy_from({src}.getIntrusivePtr());\n'
 
 
 def generate_aten_out(ctx, tree, rwxtree, fname, sig, rwsig, params, fnopts):
@@ -824,7 +802,7 @@ def generate_aten_out(ctx, tree, rwxtree, fname, sig, rwsig, params, fnopts):
   if type_core(rtype) == 'std::tuple':
     num_outputs = len(tuple_type_list(rtype))
 
-  code = '{} {{\n'.format(sig)
+  code = f'{sig} {{\n'
   code += generate_entry_debug_code(tree, fname, params)
 
   param_vars = get_param_names(params)
@@ -834,24 +812,23 @@ def generate_aten_out(ctx, tree, rwxtree, fname, sig, rwsig, params, fnopts):
     m = re.match(r'(.*)_out$', fname)
     assert m is not None, fname
     out_count = num_outputs if num_outputs is not None else 1
-    fcall = create_call('ATenMLIRType::{}'.format(m.group(1)),
-                        param_vars[out_count:])
+    fcall = create_call(f'ATenMLIRType::{m[1]}', param_vars[out_count:])
 
-  tmp_result = '{}_tmp'.format(fname)
-  code += '  auto {} = {};\n'.format(tmp_result, fcall)
+  tmp_result = f'{fname}_tmp'
+  code += f'  auto {tmp_result} = {fcall};\n'
   if num_outputs is None:
     code += generate_outfn_result_copy(param_vars[0], tmp_result)
     code += generate_exit_debug_code(tree, fname, param_vars[0], params,
                                      param_vars)
-    code += '  return {};\n'.format(param_vars[0])
+    code += f'  return {param_vars[0]};\n'
   else:
-    for i in range(0, num_outputs):
-      code += generate_outfn_result_copy(
-          param_vars[i], 'std::get<{}>({})'.format(i, tmp_result))
-    code += generate_exit_debug_code(tree, fname, param_vars[0:num_outputs],
+    for i in range(num_outputs):
+      code += generate_outfn_result_copy(param_vars[i],
+                                         f'std::get<{i}>({tmp_result})')
+    code += generate_exit_debug_code(tree, fname, param_vars[:num_outputs],
                                      params, param_vars)
-    code += '  return {}('.format(get_return_type_str(rwxtree, rwsig))
-    for i in range(0, num_outputs):
+    code += f'  return {get_return_type_str(rwxtree, rwsig)}('
+    for i in range(num_outputs):
       if i > 0:
         code += ', '
       code += param_vars[i]
@@ -864,7 +841,7 @@ def generate_aten_to_mlir(ctx, tree, rwxtree, fname, sig, rwsig, params,
                           fnopts):
   ref_param = get_reference_param(params, fnopts=fnopts)
 
-  code = '{} {{\n'.format(sig)
+  code = f'{sig} {{\n'
   code += generate_entry_debug_code(tree, fname, params)
   the_ref_param = param_name(ref_param) if ref_param else None
   tfetcher = TensorFetcher('mlirtens')
@@ -900,8 +877,7 @@ def generate_aten_to_mlir(ctx, tree, rwxtree, fname, sig, rwsig, params,
                                            param_vars))
   #code += tfetcher.generate_updates()
   if result_assign:
-    code += ('  static_cast<void>({}); // Avoid warnings in case not '
-             'used\n'.format(_RESULT_NAME))
+    code += f'  static_cast<void>({_RESULT_NAME}); // Avoid warnings in case not used\n'
   code += generate_exit_debug_code(tree, fname,
                                    _RESULT_NAME if result_assign else None,
                                    params, param_vars)
@@ -968,14 +944,14 @@ def extract_functions(path):
     m = re.match(r'\s*([^\s].*); //\s+(.*)', line)
     if not m:
       continue
-    fndef = m.group(1)
+    fndef = m[1]
     try:
       _XPARSER.parse(fndef)
-      functions.append(FuncDef(cpp_sig=fndef, aten_sig=m.group(2)))
+      functions.append(FuncDef(cpp_sig=fndef, aten_sig=m[2]))
     except Exception as e:
       if is_tensor_api(fndef)[0]:
         errors.append((fndef, str(e)))
-        print('Error parsing "{}": {}'.format(fndef, e), file=sys.stderr)
+        print(f'Error parsing "{fndef}": {e}', file=sys.stderr)
   return functions, errors
 
 
@@ -992,15 +968,13 @@ def parse_local_overrides(path):
   for line in open(path, 'r'):
     line = line.strip()
     if not fndef:
-      m = re.match(r'static\s+(.*);', line)
-      if m:
-        functions.append(m.group(1))
+      if m := re.match(r'static\s+(.*);', line):
+        functions.append(m[1])
         continue
-      m = re.match(r'static\s+(.*)', line)
-      if m:
-        fndef = m.group(1)
+      if m := re.match(r'static\s+(.*)', line):
+        fndef = m[1]
     else:
-      fndef = '{} {}'.format(fndef, line)
+      fndef = f'{fndef} {line}'
       if fndef.endswith(';'):
         functions.append(fndef[:-1])
         fndef = None
@@ -1035,10 +1009,9 @@ def get_dialect_name(func):
 
 
 def generate_td_functions(fgens, overrides):
-  code = ''
   overridden = set()
 
-  code += "#ifdef ATEN_OP_DEFS\n"
+  code = '' + "#ifdef ATEN_OP_DEFS\n"
   code += "#else\n"
   code += "#define ATEN_OP_DEFS\n\n"
 
@@ -1057,9 +1030,9 @@ def generate_td_functions(fgens, overrides):
 
       dialect_name = get_dialect_name(fgen.func)
       #print ('"{}"'.format(dialect_name))
-      code += 'def aten_{}Op: aten_Op<"{}"'.format(dialect_name, fgen.func)
+      code += f'def aten_{dialect_name}Op: aten_Op<"{fgen.func}"'
       code += ', [NoSideEffect'
-      if not fgen.func in _TD_NO_OPSTATS_LIST:
+      if fgen.func not in _TD_NO_OPSTATS_LIST:
         code += ', StatisticsOpInterface'
       code += ']>,\n'
       code += '    Results<(outs'
@@ -1071,7 +1044,7 @@ def generate_td_functions(fgens, overrides):
       #   cptype = type_core(ptype)
       #   print(pname)
       code += ' AnyTensor'
-      for i in range(num_outputs - 1):
+      for _ in range(num_outputs - 1):
         code += ', AnyTensor'
       code += ')> {\n'
       code += '  let arguments = (\n'
@@ -1082,10 +1055,9 @@ def generate_td_functions(fgens, overrides):
         cptype = type_core(ptype)
         if (cptype == 'Tensor'):
           td_type = "AnyTensor"
-        elif (cptype == 'Scalar' or cptype == 'int64_t' or cptype == 'double' or
-              cptype == 'bool'):
+        elif cptype in ['Scalar', 'int64_t', 'double', 'bool']:
           td_type = "AnyScalar"
-        elif (cptype == 'c10::optional' or cptype == 'std::array'):
+        elif cptype in ['c10::optional', 'std::array']:
           continue
         elif (cptype == 'IntArrayRef'):
           td_type = "AnyType"
@@ -1093,16 +1065,16 @@ def generate_td_functions(fgens, overrides):
           print('unhandled type', cptype)
           td_type = "AnyType"
         if p == params[0]:
-          code += '  ins {}:${}'.format(td_type, pname)
+          code += f'  ins {td_type}:${pname}'
         else:
-          code += ',\n      {}:${}'.format(td_type, pname)
+          code += f',\n      {td_type}:${pname}'
       code += '\n  );\n'
-      code += '  let summary = "aten {} operator";\n'.format(fgen.func)
+      code += f'  let summary = "aten {fgen.func} operator";\n'
       code += '  let description = [{\n'
-      code += '    {}Op\n'.format(dialect_name)
-      code += '    aten {} operator\n'.format(fgen.func)
+      code += f'    {dialect_name}Op\n'
+      code += f'    aten {fgen.func} operator\n'
       code += '  }];\n'
-      if not fgen.func in _TD_NO_OPSTATS_LIST:
+      if fgen.func not in _TD_NO_OPSTATS_LIST:
         code += '  let extraClassDeclaration = [{\n'
         code += '    std::map<std::string, uint64_t> getStatistics();\n'
         code += '  }];\n'
@@ -1113,46 +1085,32 @@ def generate_td_functions(fgens, overrides):
 
 
 def generate_registrations(fgens, overrides):
-  code = 'void RegisterAtenTypeFunctions() {\n'
-  code += '  static auto dispatch = torch::RegisterOperators()\n'
+  code = ('void RegisterAtenTypeFunctions() {\n' +
+          '  static auto dispatch = torch::RegisterOperators()\n')
   overridden = set()
   for fgen in fgens:
     mapsig_key = get_mapsig_key(fgen.mapsig)
     if mapsig_key in overrides:
-      override_fn = 'ATenMLIRType::{}'.format(fgen.func)
+      override_fn = f'ATenMLIRType::{fgen.func}'
       overridden.add(mapsig_key)
     else:
       override_fn = fgen.xfunc if fgen.code else None
     if override_fn:
-      code += (
-          '  .op(torch::RegisterOperators::options().schema("{}")\n      '
-          '.impl_unboxedOnlyKernel<{}, &{}>(at::TensorTypeId::XLATensorId)\n'
-          '      .aliasAnalysis(c10::AliasAnalysisKind::FROM_SCHEMA))\n'.format(
-              fgen.aten_sig, fgen.funsig, override_fn, override_fn,
-              fgen.aten_sig))
+      code += f'  .op(torch::RegisterOperators::options().schema("{fgen.aten_sig}")\n      .impl_unboxedOnlyKernel<{fgen.funsig}, &{override_fn}>(at::TensorTypeId::XLATensorId)\n      .aliasAnalysis(c10::AliasAnalysisKind::FROM_SCHEMA))\n'
   return code + ';\n}\n', overridden
 
 
 def generate_functions(fgens):
-  code = ''
-  for fgen in fgens:
-    if fgen.code:
-      code += '{}\n\n'.format(fgen.code)
-  return code
+  return ''.join(f'{fgen.code}\n\n' for fgen in fgens if fgen.code)
 
 
 def generate_class_functions(fgens):
-  code = ''
-  for fgen in fgens:
-    if fgen.code:
-      code += '  static {};\n'.format(fgen.rwsig)
-  return code
+  return ''.join(f'  static {fgen.rwsig};\n' for fgen in fgens if fgen.code)
 
 
 def gen_output_file(args, name):
-  if not args.output_folder:
-    return sys.stdout
-  return open(os.path.join(args.output_folder, name), 'w')
+  return (open(os.path.join(args.output_folder, name), 'w')
+          if args.output_folder else sys.stdout)
 
 
 def gen_h_output_file(args):
@@ -1171,13 +1129,12 @@ def check_overrides(availagle_fgens, overrides, overridden):
   misses = 0
   for mapsig, cpp_sig in overrides.items():
     mapsig_key = get_mapsig_key(mapsig)
-    if not mapsig_key in overridden:
+    if mapsig_key not in overridden:
       misses += 1
-      print('ERROR: ATenMLIRType function missed override:\n'
-            '  CPPSIG: {}\n'
-            '  MAPSIG: {}\n'
-            '  KEY   : {}\n'.format(cpp_sig, mapsig, mapsig_key),
-            file=sys.stderr)
+      print(
+          f'ERROR: ATenMLIRType function missed override:\n  CPPSIG: {cpp_sig}\n  MAPSIG: {mapsig}\n  KEY   : {mapsig_key}\n',
+          file=sys.stderr,
+      )
   if misses != 0:
     print('Some required overrides were missing (see above).')
     print('Available overrides:')
@@ -1189,28 +1146,27 @@ def check_overrides(availagle_fgens, overrides, overridden):
 
 def generate(args):
   fndefs, errors = extract_functions(args.typedef)
-  print('Extracted {} functions ({} errors) from {}'.format(
-      len(fndefs), len(errors), args.typedef),
-        file=sys.stderr)
+  print(
+      f'Extracted {len(fndefs)} functions ({len(errors)} errors) from {args.typedef}',
+      file=sys.stderr,
+  )
   assert len(errors) == 0
 
   local_overrides = parse_local_overrides(args.overridetype)
-  print('{} function overrides in {}'.format(len(local_overrides),
-                                             args.overridetype),
-        file=sys.stderr)
+  print(
+      f'{len(local_overrides)} function overrides in {args.overridetype}',
+      file=sys.stderr,
+  )
 
   fgens = []
   ctx = Context(args.functions)
   for ts in fndefs:
     try:
-      fgen = get_mlir_wrapper(ts, ctx)
-      if fgen:
+      if fgen := get_mlir_wrapper(ts, ctx):
         fgens.append(fgen)
     except Exception as e:
-      print('Failed to generate wrapper for {}: {}'.format(ts, e),
-            file=sys.stderr)
-  print('Generated {} wrappers for {}'.format(len(fgens), args.typedef),
-        file=sys.stderr)
+      print(f'Failed to generate wrapper for {ts}: {e}', file=sys.stderr)
+  print(f'Generated {len(fgens)} wrappers for {args.typedef}', file=sys.stderr)
 
   functions = generate_functions(fgens)
   hfunctions = generate_class_functions(fgens)

@@ -8,57 +8,49 @@ import_global = test_config.create_import_dump_decorator()
 # CHECK-LABEL: func @binary_lt_
 @import_global
 def binary_lt_():
-  # CHECK: %[[A:.*]] = constant 1 : i64
-  # CHECK: %[[B:.*]] = constant 2 : i64
-  x = 1
   y = 2
   # CHECK: {{.*}} = basicpy.binary_compare %[[A]] "Lt" %[[B]] : i64, i64
-  return x < y
+  return y > 1
 
 
 # CHECK-LABEL: func @binary_gt_
 @import_global
 def binary_gt_():
-  x = 1
   y = 2
   # CHECK: {{.*}} = basicpy.binary_compare {{.*}} "Gt" {{.*}} : i64, i64
-  return x > y
+  return y < 1
 
 
 # CHECK-LABEL: func @binary_lte_
 @import_global
 def binary_lte_():
-  x = 1
   y = 2
   # CHECK: {{.*}} = basicpy.binary_compare {{.*}} "LtE" {{.*}} : i64, i64
-  return x <= y
+  return y >= 1
 
 
 # CHECK-LABEL: func @binary_gte_
 @import_global
 def binary_gte_():
-  x = 1
   y = 2
   # CHECK: {{.*}} = basicpy.binary_compare {{.*}} "GtE" {{.*}} : i64, i64
-  return x >= y
+  return y <= 1
 
 
 # CHECK-LABEL: func @binary_eq_
 @import_global
 def binary_eq_():
-  x = 1
   y = 2
   # CHECK: {{.*}} = basicpy.binary_compare {{.*}} "Eq" {{.*}} : i64, i64
-  return x == y
+  return y == 1
 
 
 # CHECK-LABEL: func @binary_neq_
 @import_global
 def binary_neq_():
-  x = 1
   y = 2
   # CHECK: {{.*}} = basicpy.binary_compare {{.*}} "NotEq" {{.*}} : i64, i64
-  return x != y
+  return y != 1
 
 
 # CHECK-LABEL: func @binary_is_

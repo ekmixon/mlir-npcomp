@@ -119,9 +119,9 @@ class ImportFrontend:
       globals_dict = f.__globals__
       builtins_module = globals_dict["__builtins__"]
     except AttributeError:
-      assert False, (
-          "Function {} does not have required user-defined function attributes".
-          format(f))
+      assert (
+          False
+      ), f"Function {f} does not have required user-defined function attributes"
 
     # Locals resolver.
     # Note that co_varnames should include both parameter and local names.

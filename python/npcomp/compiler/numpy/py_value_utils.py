@@ -82,22 +82,20 @@ class PyValueMap:
 
   def __init__(self, validator=lambda x: True):
     super().__init__()
-    self._reference_map = dict()  # of: dict[HashableReference, Any]
-    self._type_map = dict()  # of: dict[Type, Any|_NotMapped]
-    self._type_filters = list()  # of: list[(Type, Any)]
-    self._fallback_filters = list()  # of: list[(lambda v, Any)]
+    self._reference_map = {}
+    self._type_map = {}
+    self._type_filters = []
+    self._fallback_filters = []
     self._validator = validator
 
   def __repr__(self):
     lines = ["refs={"]
-    for ref, binding in self._reference_map.items():
-      lines.append("  {}: {}".format(ref.referrent, binding))
+    lines.extend(f"  {ref.referrent}: {binding}"
+                 for ref, binding in self._reference_map.items())
     lines.append("}, types={")
-    for t, binding in self._type_filters:
-      lines.append("  {}: {}".format(t, binding))
+    lines.extend(f"  {t}: {binding}" for t, binding in self._type_filters)
     lines.append("}, filters={")
-    for f, binding in self._fallback_filters:
-      lines.append("  {}: {}".format(f, binding))
+    lines.extend(f"  {f}: {binding}" for f, binding in self._fallback_filters)
     lines.append("}")
     return "\n".join(lines)
 
@@ -134,9 +132,8 @@ class PyValueMap:
         self._type_map[match_type] = binding
         return binding
 
-    # Fallback filters.
-    for predicate, binding in self._fallback_filters:
-      if predicate(value):
-        return binding
-
-    return None
+    return next(
+        (binding
+         for predicate, binding in self._fallback_filters if predicate(value)),
+        None,
+    )

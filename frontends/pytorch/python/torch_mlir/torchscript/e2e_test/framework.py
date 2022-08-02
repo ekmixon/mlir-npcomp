@@ -135,9 +135,7 @@ class TestUtils:
 
     # TODO: Add zeros/ones/etc. as convenient.
     def rand(self, *sizes):
-        if len(sizes) == 0:
-            return torch.rand([])
-        return torch.rand(*sizes)
+        return torch.rand(*sizes) if sizes else torch.rand([])
 
 
 class Test(NamedTuple):

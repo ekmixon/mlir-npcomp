@@ -75,7 +75,7 @@ class FunctionContext:
     """Lookup a name in the environment, requiring it to have evaluated."""
     ref = self.environment.resolve_name(name)
     if ref is None:
-      self.abort("Could not resolve referenced name '{}'".format(name))
+      self.abort(f"Could not resolve referenced name '{name}'")
     logging.debug("Map name({}) -> {}", name, ref)
     return ref
 
@@ -84,7 +84,7 @@ class FunctionContext:
     env = self.environment
     result = env.code_py_value_as_const(py_value)
     if result is NotImplemented:
-      self.abort("Cannot code python value as constant: {}".format(py_value))
+      self.abort(f"Cannot code python value as constant: {py_value}")
     return result
 
   def emit_partial_eval_result(self,
@@ -98,7 +98,7 @@ class FunctionContext:
       # Import constant.
       return self.emit_const_value(partial_result.yields.live_value)
     else:
-      self.abort("Unhandled partial eval result type {}".format(partial_result))
+      self.abort(f"Unhandled partial eval result type {partial_result}")
 
 
 class BaseNodeVisitor(ast.NodeVisitor):
@@ -161,15 +161,15 @@ class FunctionDefImporter(BaseNodeVisitor):
       self.fctx.update_loc(target)
       if not isinstance(target.ctx, ast.Store):
         # TODO: Del, AugStore, etc
-        self.fctx.abort("Unsupported assignment context type %s" %
-                        target.ctx.__class__.__name__)
+        self.fctx.abort(
+            f"Unsupported assignment context type {target.ctx.__class__.__name__}"
+        )
       name_ref = self.fctx.lookup_name(target.id)
       try:
         name_ref.store(self.fctx.environment, expr.value)
         logging.debug("STORE: {} <- {}", name_ref, expr.value)
       except NotImplementedError:
-        self.fctx.abort(
-            "Cannot assign to '{}': Store not supported".format(name_ref))
+        self.fctx.abort(f"Cannot assign to '{name_ref}': Store not supported")
 
   def visit_Expr(self, ast_node):
     ic = self.fctx.ic
@@ -237,8 +237,7 @@ class ExpressionImporter(BaseNodeVisitor):
           pe_importer.partial_eval_result)
       return
 
-    self.fctx.abort("unhandled attribute access mode: {}".format(
-        ast.dump(ast_node)))
+    self.fctx.abort(f"unhandled attribute access mode: {ast.dump(ast_node)}")
 
   def visit_BinOp(self, ast_node):
     ic = self.fctx.ic
@@ -295,15 +294,10 @@ class ExpressionImporter(BaseNodeVisitor):
 
   def visit_Call(self, ast_node):
     # Evaluate positional args.
-    evaluated_args = []
-    for raw_arg in ast_node.args:
-      evaluated_args.append(self.sub_evaluate(raw_arg))
-
+    evaluated_args = [self.sub_evaluate(raw_arg) for raw_arg in ast_node.args]
     # Evaluate keyword args.
-    keyword_args = []
-    for raw_kw_arg in ast_node.keywords:
-      keyword_args.append((raw_kw_arg.arg, self.sub_evaluate(raw_kw_arg.value)))
-
+    keyword_args = [(raw_kw_arg.arg, self.sub_evaluate(raw_kw_arg.value))
+                    for raw_kw_arg in ast_node.keywords]
     # Perform partial evaluation of the callee.
     callee_importer = PartialEvalImporter(self.fctx)
     callee_importer.visit(ast_node.func)
@@ -323,8 +317,8 @@ class ExpressionImporter(BaseNodeVisitor):
     # The function is not known to the compiler.
     self.fctx.check_partial_evaluated(callee_result)
     # TODO: Implement first class functions.
-    self.fctx.abort("unhandled (potentially first-class function): {}".format(
-        ast.dump(ast_node)))
+    self.fctx.abort(
+        f"unhandled (potentially first-class function): {ast.dump(ast_node)}")
 
   def visit_Compare(self, ast_node):
     # Short-circuit comparison (degenerates to binary comparison when just
@@ -407,8 +401,9 @@ class ExpressionImporter(BaseNodeVisitor):
 
   def visit_Name(self, ast_node):
     if not isinstance(ast_node.ctx, ast.Load):
-      self.fctx.abort("Unsupported expression name context type %s" %
-                      ast_node.ctx.__class__.__name__)
+      self.fctx.abort(
+          f"Unsupported expression name context type {ast_node.ctx.__class__.__name__}"
+      )
     name_ref = self.fctx.lookup_name(ast_node.id)
     pe_result = name_ref.load(self.fctx.environment)
     logging.debug("LOAD {} -> {}", name_ref, pe_result)

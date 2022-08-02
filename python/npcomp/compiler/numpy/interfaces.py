@@ -119,7 +119,7 @@ class NameResolver:
 
   def checked_resolve_name(self, name: str) -> Optional[NameReference]:
     ref = self.resolve_name(name)
-    assert ref is not None, "Lookup of name {} is required".format(name)
+    assert ref is not None, f"Lookup of name {name} is required"
     return ref
 
   def resolve_name(self, name: str) -> Optional[NameReference]:
@@ -154,7 +154,7 @@ class ValueCoderChain(ValueCoder):
     self._sub_coders = tuple(sub_coders)
 
   def __repr__(self):
-    return "ValueCoderChain({})".format(self._sub_coders)
+    return f"ValueCoderChain({self._sub_coders})"
 
   def code_py_value_as_const(self, env: "Environment",
                              py_value) -> Union[_NotImplementedType, _ir.Value]:
@@ -252,8 +252,7 @@ class LiveValueRef:
     return PartialEvalResult.not_evaluated()
 
   def __repr__(self):
-    return "LiveValueRef({}, {})".format(self.__class__.__name__,
-                                         self.live_value)
+    return f"LiveValueRef({self.__class__.__name__}, {self.live_value})"
 
 
 class PartialEvalHook:
@@ -287,14 +286,11 @@ class Configuration:
     super().__init__()
     self.target_factory = target_factory
     self.base_name_resolvers = tuple(base_name_resolvers)
-    self.value_coder = value_coder if value_coder else ValueCoderChain(())
+    self.value_coder = value_coder or ValueCoderChain(())
     self.partial_eval_hook = partial_eval_hook
 
   def __repr__(self):
-    return ("Configuration(target_factory={}, base_name_resolvers={}, "
-            "value_code={}, partial_eval_hook={})").format(
-                self.target_factory, self.base_name_resolvers, self.value_coder,
-                self.partial_eval_hook)
+    return f"Configuration(target_factory={self.target_factory}, base_name_resolvers={self.base_name_resolvers}, value_code={self.value_coder}, partial_eval_hook={self.partial_eval_hook})"
 
 
 class Environment:

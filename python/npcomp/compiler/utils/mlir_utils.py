@@ -43,7 +43,7 @@ class ImportContext:
   ]
 
   def __init__(self, context: Optional[_ir.Context]):
-    self.context = _ir.Context() if not context else context
+    self.context = context or _ir.Context()
     _cext.register_all_dialects(self.context)
 
     self.loc = _ir.Location.unknown(context=self.context)  # type: _ir.Location
@@ -132,12 +132,13 @@ class ImportContext:
           "arg_names":
               _ir.ArrayAttr.get([_ir.StringAttr.get(n) for n in arg_names]),
       }
-      op = _ir.Operation.create("basicpy.func_template_call",
-                                results=[result_type],
-                                operands=args,
-                                attributes=attributes,
-                                ip=self.ip)
-      return op
+      return _ir.Operation.create(
+          "basicpy.func_template_call",
+          results=[result_type],
+          operands=args,
+          attributes=attributes,
+          ip=self.ip,
+      )
 
   def scf_IfOp(self, results, condition: _ir.Value, with_else_region: bool):
     """Creates an SCF if op.
@@ -153,12 +154,11 @@ class ImportContext:
                               ip=self.ip)
     then_region = op.regions[0]
     then_block = then_region.blocks.append()
-    if with_else_region:
-      else_region = op.regions[1]
-      else_block = else_region.blocks.append()
-      return op, _ir.InsertionPoint(then_block), _ir.InsertionPoint(else_block)
-    else:
+    if not with_else_region:
       return op, _ir.InsertionPoint(then_block)
+    else_region = op.regions[1]
+    else_block = else_region.blocks.append()
+    return op, _ir.InsertionPoint(then_block), _ir.InsertionPoint(else_block)
 
   def scf_YieldOp(self, operands):
     return _ir.Operation.create("scf.yield",
